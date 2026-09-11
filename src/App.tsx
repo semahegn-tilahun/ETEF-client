@@ -15,6 +15,7 @@ const nav = [
   ["/gallery", "gallery"],
   ["/vacancies", "vacancies"],
   ["/contact", "contact"],
+  ["/partners", "partners"],
 ] as const;
 
 function Brand() {
@@ -318,6 +319,8 @@ function Home() {
         </div>
       </section>
 
+      <PartnersPreview />
+
       <section className="section final-cta">
         <div className="container final-cta-inner">
           <div>
@@ -329,6 +332,28 @@ function Home() {
       </section>
     </>
   );
+}
+
+function PartnersPreview() {
+  const { i18n } = useTranslation();
+  const [items, setItems] = useState<any[]>([]);
+  const am = i18n.language.startsWith("am");
+  useEffect(() => { api<{items:any[]}>("/partners").then(r => setItems(r.items.slice(0,8))).catch(() => setItems([])); }, []);
+  if (!items.length) return null;
+  return <section className="section partners-section"><div className="container"><div className="section-topline"><span className="section-index">03 / PARTNERS</span><span className="topline-copy">{am?"አጋሮች እና ስፖንሰሮች":"Partners & sponsors"}</span></div><div className="partners-heading"><div><span className="eyebrow">{am?"የETEF አጋሮች":"OUR PARTNERS"}</span><h2>{am?"ከETEF ጋር የሚሰሩ አጋሮችን ይወቁ":"Organizations working with and supporting ETEF."}</h2></div><Link className="arrow-link" to="/partners">{am?"ሁሉንም ይመልከቱ":"Explore all partners"} <span>↗</span></Link></div><div className="partners-grid">{items.map(x=><PartnerCard key={x.id} item={x} am={am}/>)}</div></div></section>;
+}
+
+function PartnerCard({item,am}:{item:any;am:boolean}) {
+  const name=am?(item.name_am||item.name_en):(item.name_en||item.name_am);
+  const label=item.category==="SPONSOR"?(am?"ስፖንሰር":"SPONSOR"):item.category==="BOTH"?(am?"አጋር · ስፖንሰር":"PARTNER · SPONSOR"):(am?"አጋር":"PARTNER");
+  return <article className="partner-card">{item.logo_url?<img src={`${API_ORIGIN}${item.logo_url}`} alt={name}/> : <div className="partner-logo-fallback">{name?.slice(0,2).toUpperCase()}</div>}<div><span>{label}</span><h3>{name}</h3>{(am?item.description_am||item.description_en:item.description_en||item.description_am)&&<p>{am?(item.description_am||item.description_en):(item.description_en||item.description_am)}</p>}{item.website_url&&<a href={item.website_url} target="_blank" rel="noreferrer">{am?"ድረ-ገጽ":"Website"} ↗</a>}</div></article>;
+}
+
+function Partners() {
+  const {i18n}=useTranslation(); const [items,setItems]=useState<any[]>([]); const am=i18n.language.startsWith("am");
+  useEffect(()=>{api<{items:any[]}>("/partners").then(r=>setItems(r.items)).catch(()=>setItems([]))},[]);
+  const sponsors=items.filter(x=>x.category==="SPONSOR"||x.category==="BOTH"); const partners=items.filter(x=>x.category==="PARTNER"||x.category==="BOTH");
+  return <Page title={am?"የETEF አጋሮች እና ስፖንሰሮች":"Our partners & sponsors"} eyebrow="PARTNERS"><p className="page-lead">{am?"ETEFን ከሚደግፉ፣ ከሚተባበሩ እና አብረው ከሚሰሩ ድርጅቶች ጋር ይተዋወቁ።":"Meet the organizations that work with, collaborate with, and support ETEF."}</p>{partners.length>0&&<><span className="eyebrow">{am?"አጋሮች":"PARTNERS"}</span><div className="partners-page-grid">{partners.map(x=><PartnerCard key={`p-${x.id}`} item={x} am={am}/>)}</div></>}{sponsors.length>0&&<><span className="eyebrow partner-section-label">{am?"ስፖንሰሮች":"SPONSORS"}</span><div className="partners-page-grid">{sponsors.map(x=><PartnerCard key={`s-${x.id}`} item={x} am={am}/>)}</div></>}{!items.length&&<div className="empty-state"><span>ETEF</span><h2>{am?"አሁን የታተሙ አጋሮች የሉም":"No partners published yet"}</h2></div>}</Page>;
 }
 
 function FeatureCard({ number, title, text, to }: { number: string; title: string; text: string; to: string }) {
@@ -418,6 +443,7 @@ function App() {
         <Route path="/gallery" element={<Gallery />} />
         <Route path="/vacancies" element={<Vacancies />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/partners" element={<Partners />} />
         <Route path="/membership/register" element={<MembershipRegister />} />
       </Route>
     </Routes>
