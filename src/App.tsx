@@ -354,16 +354,20 @@ function Page({ title, eyebrow, children }: { title: string; eyebrow: string; ch
   );
 }
 
-function About() {
-  return (
-    <Page title="About ETEF" eyebrow="ABOUT ETEF">
-      <p className="page-lead">The Ethiopian Transport Employers Federation is a premier apex organization dedicated to safeguarding the rights and benefits of its members within the transportation sector.</p>
-      <div className="page-block"><span className="eyebrow">VISION</span><h2>Seeing strong and representing voice in Ethiopian transport industry.</h2></div>
-      <div className="page-block"><span className="eyebrow">MISSION</span><p>ETEF will work to safeguard the economic, legal, social and other rights and benefits of its members and support their performance through training, education, legal support, current technologies and cooperation with local, international and social partners toward industrial peace.</p></div>
-    </Page>
-  );
+function usePublicContent(key:string){
+  const {i18n}=useTranslation();
+  const [item,setItem]=useState<any>(null);
+  useEffect(()=>{api<{items:any[]}>("/content").then(r=>setItem(r.items.find(x=>x.content_key===key)||null)).catch(()=>setItem(null))},[key]);
+  const am=i18n.language.startsWith("am");
+  return {item,title:am?(item?.title_am||item?.title_en):(item?.title_en||item?.title_am),body:am?(item?.body_am||item?.body_en):(item?.body_en||item?.body_am),am};
 }
 
+function PublicState({children}:{children:ReactNode}){return <>{children}</>}
+
+function About() {
+  const about=usePublicContent("about");const vision=usePublicContent("vision");const mission=usePublicContent("mission");
+  return <Page title={about.title||"About ETEF"} eyebrow="ABOUT ETEF"><p className="page-lead">{about.body||"The Ethiopian Transport Employers Federation is a premier apex organization dedicated to safeguarding the rights and benefits of its members within the transportation sector."}</p><div className="page-block"><span className="eyebrow">{vision.title||"Vision"}</span><h2>{vision.body||"Seeing strong and representing voice in Ethiopian transport industry."}</h2></div><div className="page-block"><span className="eyebrow">{mission.title||"Mission"}</span><p>{mission.body||"ETEF works to safeguard the rights and benefits of its members and support their performance toward industrial peace."}</p></div></Page>;
+}
 function Membership() {
   return (
     <Page title="Membership" eyebrow="MEMBERSHIP">
@@ -377,20 +381,9 @@ function Membership() {
 }
 
 function FAQ() {
-  const [items, setItems] = useState<{id:string;question_en:string;answer_en:string}[]>([]);
-  useEffect(() => { api<{items:typeof items}>("/faqs").then(r => setItems(r.items)).catch(() => setItems([])); }, []);
-  const fallback = [
-    ["What is ETEF?", "The Ethiopian Transport Employers Federation is an apex organization representing transport employers and supporting the interests of its members."],
-    ["How can an organization become a member?", "Organizations can submit an online membership application through the membership section."],
-  ];
-  const rows = items.length ? items.map(x => [x.question_en, x.answer_en]) : fallback;
-  return (
-    <Page title="Frequently asked questions" eyebrow="FAQ">
-      <div className="faq-list">{rows.map(([question, answer], index) => (
-        <FaqRow key={question} question={question} answer={answer} index={index} />
-      ))}</div>
-    </Page>
-  );
+  const {i18n}=useTranslation();const [items,setItems]=useState<any[]>([]);const [open,setOpen]=useState<number|null>(0);const am=i18n.language.startsWith("am");
+  useEffect(()=>{api<{items:any[]}>("/faqs").then(r=>setItems(r.items)).catch(()=>setItems([]))},[]);
+  return <Page title={am?"ተደጋጋሚ ጥያቄዎች":"Frequently asked questions"} eyebrow="FAQ"><div className="faq-list">{items.map((x,index)=>{const q=am?(x.question_am||x.question_en):(x.question_en||x.question_am);const a=am?(x.answer_am||x.answer_en):(x.answer_en||x.answer_am);return <button className={`faq-row ${open===index?"open":""}`} key={x.id} onClick={()=>setOpen(open===index?null:index)}><span><strong>{q}</strong>{open===index&&<p>{a}</p>}</span><b>{open===index?"−":"+"}</b></button>})}{!items.length&&<div className="empty-state"><span>ETEF</span><h2>{am?"ጥያቄዎች እስካሁን አልታተሙም":"No FAQs published yet"}</h2><p>{am?"የተፈቀዱ ጥያቄዎች እዚህ ይታያሉ።":"Approved FAQ entries will appear here."}</p></div>}</div></Page>;
 }
 function FaqRow({question,answer,index}:{question:string;answer:string;index:number}) {
   const [open,setOpen]=useState(index===0);
@@ -398,39 +391,21 @@ function FaqRow({question,answer,index}:{question:string;answer:string;index:num
 }
 
 function Gallery() {
-  const [albums,setAlbums]=useState<{id:string;title_en:string;description_en?:string;event_date?:string;cover_image_url?:string;photos?:{id:string;image_url:string;title_en?:string}[]}[]>([]);
-  useEffect(()=>{api<{items:typeof albums}>("/gallery/albums").then(r=>setAlbums(r.items)).catch(()=>setAlbums([]))},[]);
-  return <Page title="ETEF event gallery" eyebrow="GALLERY">
-    <p className="page-lead">Approved event albums published by ETEF will appear here.</p>
-    {albums.length?<div className="gallery-grid">{albums.map((album,index)=><article className="album" key={album.id}>
-      <div className={`album-image album-${(index%4)+1}`}>{album.cover_image_url?<img src={`${API_ORIGIN}${album.cover_image_url}`} alt={album.title_en}/>:(album.photos?.[0]?.image_url?<img src={`${API_ORIGIN}${album.photos[0].image_url}`} alt={album.title_en}/>:<span>ETEF</span>)}</div>
-      <div className="album-meta"><span>EVENT ALBUM</span><h3>{album.title_en}</h3><b>{album.event_date||"ETEF event"}</b>{album.photos?.length?<div className="public-photo-strip">{album.photos.slice(0,4).map(p=><img key={p.id} src={`${API_ORIGIN}${p.image_url}`} alt=""/> )}</div>:null}</div>
-    </article>)}</div>:<div className="empty-state"><span>ETEF</span><h2>No published albums yet</h2><p>Published gallery albums will automatically appear here.</p></div>}
-  </Page>;
+  const {i18n}=useTranslation();const [albums,setAlbums]=useState<any[]>([]);const am=i18n.language.startsWith("am");
+  useEffect(()=>{api<{items:any[]}>("/gallery/albums").then(r=>setAlbums(r.items)).catch(()=>setAlbums([]))},[]);
+  return <Page title={am?"የETEF ዝግጅቶች የፎቶ ማዕከል":"ETEF event gallery"} eyebrow="GALLERY"><p className="page-lead">{am?"የተፈቀዱ የዝግጅት ፎቶዎች እዚህ ይታያሉ።":"Approved event photographs and albums are published here."}</p><div className="gallery-grid">{albums.map((album:any,index:number)=><article className="album" key={album.id}><div className={`album-image album-${(index%4)+1}`}>{album.cover_image_url?<img src={`${API_ORIGIN}${album.cover_image_url}`} alt=""/>:<span>ETEF</span>}</div><div className="album-meta"><span>EVENT ALBUM</span><h3>{am?(album.title_am||album.title_en):(album.title_en||album.title_am)}</h3>{(am?album.description_am||album.description_en:album.description_en||album.description_am)&&<p>{am?(album.description_am||album.description_en):(album.description_en||album.description_am)}</p>}<b>{am?"ይመልከቱ →":"View album →"}</b></div></article>)}{!albums.length&&<div className="empty-state"><span>ETEF</span><h2>{am?"የፎቶ አልበሞች የሉም":"No gallery albums published yet"}</h2></div>}</div></Page>;
 }
-
 function Vacancies() {
-  const [items,setItems]=useState<{id:string;title_en:string;description_en?:string;location?:string;employment_type?:string;closing_date?:string}[]>([]);
-  useEffect(()=>{api<{items:typeof items}>("/vacancies").then(r=>setItems(r.items)).catch(()=>setItems([]))},[]);
-  return <Page title="Job vacancies" eyebrow="CAREERS">
-    <p className="page-lead">Current opportunities published by ETEF are displayed here.</p>
-    {items.length?<div className="membership-page-grid">{items.map(v=><article className="page-card" key={v.id}><span className="eyebrow">OPEN POSITION</span><h2>{v.title_en}</h2><p>{v.description_en||"See the published position details and application instructions."}</p><p><strong>{v.location||"Ethiopia"}</strong>{v.employment_type?` · ${v.employment_type}`:""}{v.closing_date?` · Deadline ${v.closing_date}`:""}</p></article>)}</div>:<div className="empty-state"><span>ETEF</span><h2>No vacancies published yet</h2><p>Published vacancies will automatically appear on this page.</p></div>}
-  </Page>;
+  const {i18n}=useTranslation();const [items,setItems]=useState<any[]>([]);const am=i18n.language.startsWith("am");
+  useEffect(()=>{api<{items:any[]}>("/vacancies").then(r=>setItems(r.items)).catch(()=>setItems([]))},[]);
+  return <Page title={am?"የሥራ ዕድሎች":"Job vacancies"} eyebrow="CAREERS"><p className="page-lead">{am?"በETEF የታተሙ የሥራ ዕድሎች።":"Current opportunities published by ETEF."}</p>{items.length?<div className="vacancy-list">{items.map(x=><article className="page-card" key={x.id}><span className="eyebrow">{x.employment_type||"OPPORTUNITY"}</span><h2>{am?(x.title_am||x.title_en):(x.title_en||x.title_am)}</h2><p>{x.location||""}{x.closing_date?` · ${am?"የመጨረሻ ቀን":"Deadline"}: ${new Date(x.closing_date).toLocaleDateString()}`:""}</p>{(am?x.description_am||x.description_en:x.description_en||x.description_am)&&<p>{am?(x.description_am||x.description_en):(x.description_en||x.description_am)}</p>} {(am?x.requirements_am||x.requirements_en:x.requirements_en||x.requirements_am)&&<div className="page-block"><span className="eyebrow">{am?"መስፈርቶች":"REQUIREMENTS"}</span><p>{am?(x.requirements_am||x.requirements_en):(x.requirements_en||x.requirements_am)}</p></div>}</article>)}</div>:<div className="empty-state"><span>ETEF</span><h2>{am?"አሁን የታተመ የሥራ ዕድል የለም":"No vacancies published yet"}</h2><p>{am?"የታተሙ የሥራ ዕድሎች እዚህ ይታያሉ።":"Published vacancies will automatically appear here."}</p></div>}</Page>;
 }
-
 function Contact() {
-  const [settings,setSettings]=useState<Record<string,string>>({});
-  useEffect(()=>{api<{settings:Record<string,string>}>("/settings").then(r=>setSettings(r.settings)).catch(()=>{})},[]);
-  return <Page title="Connect with ETEF" eyebrow="CONTACT">
-    <p className="page-lead">Official contact details and approved social-media links are managed through the ETEF administration system.</p>
-    <div className="contact-grid">
-      <div className="page-card"><span className="eyebrow">EMAIL</span><h2>Official organizational email</h2><p>{settings.organization_email||"To be confirmed by ETEF."}</p></div>
-      <div className="page-card"><span className="eyebrow">SOCIAL</span><h2>ETEF online channels</h2><p>{[settings.facebook_url,settings.telegram_url,settings.linkedin_url,settings.youtube_url].filter(Boolean).join(" · ")||"Approved social links will be published here."}</p></div>
-      <div className="page-card"><span className="eyebrow">OFFICE</span><h2>Office information</h2><p>Address and telephone details will be confirmed before production.</p></div>
-    </div>
-  </Page>;
+  const {i18n}=useTranslation();const [settings,setSettings]=useState<Record<string,string>>({});const am=i18n.language.startsWith("am");
+  useEffect(()=>{api<{settings:Record<string,string>}>("/settings").then(r=>setSettings(r.settings)).catch(()=>setSettings({}))},[]);
+  const links=[['facebook_url','Facebook'],['linkedin_url','LinkedIn'],['telegram_url','Telegram'],['youtube_url','YouTube']].filter(([k])=>settings[k]);
+  return <Page title={am?"ETEFን ያግኙ":"Connect with ETEF"} eyebrow="CONTACT"><p className="page-lead">{am?"የተረጋገጠ የETEF የግንኙነት መረጃ።":"Official ETEF contact information and approved social channels."}</p><div className="contact-grid"><div className="page-card"><span className="eyebrow">{am?"ኢሜይል":"EMAIL"}</span><h2>{settings.organization_email||"—"}</h2>{settings.organization_email&&<a className="button button-gold" href={`mailto:${settings.organization_email}`}>{am?"ኢሜይል ይላኩ":"Send email"} ↗</a>}</div><div className="page-card"><span className="eyebrow">{am?"ማህበራዊ ሚዲያ":"SOCIAL"}</span><h2>{links.length?links.map(([k,label])=><a key={k} href={settings[k]} target="_blank" rel="noreferrer" style={{display:"block",margin:".4rem 0"}}>{label} ↗</a>):"—"}</h2></div><div className="page-card"><span className="eyebrow">{am?"መስሪያ ቤት":"OFFICE"}</span><h2>{am?"የቢሮ መረጃ":"Office information"}</h2><p>{am?"የቢሮ አድራሻና ስልክ መረጃ በአስተዳደር ፖርታሉ ይዘምናል።":"Office address and telephone details can be maintained by the administrator."}</p></div></div></Page>;
 }
-
 function App() {
   return (
     <Routes>

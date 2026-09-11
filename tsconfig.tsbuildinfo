@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/api.ts","./src/i18n.ts","./src/main.tsx","./src/vite-env.d.ts","./src/admin/Admin.tsx","./src/auth/AdminLogin.tsx","./src/auth/AuthContext.tsx","./src/auth/ProtectedAdmin.tsx","./src/pages/MembershipRegister.tsx"],"errors":true,"version":"5.8.3"}

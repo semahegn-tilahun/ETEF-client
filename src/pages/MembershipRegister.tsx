@@ -1,25 +1,372 @@
-import { FormEvent, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { api } from '../api';
+import { FormEvent, useState } from "react";
+import { Link } from "react-router-dom";
+import { api } from "../api";
 
-type Data = Record<string,string|boolean>;
-const initial: Data = { organizationName:'', organizationType:'', sector:'', region:'', city:'Addis Ababa', address:'', phone:'', email:'', members:'', vehicles:'', manager:'', managerPhone:'', managerEmail:'', representative:'', representativePhone:'', consent:false };
-const steps = ['Organization','Location','Operations','Contacts','Review'];
+type Data = Record<string, string | boolean>;
+const initial: Data = {
+  organizationName: "",
+  organizationType: "",
+  sector: "",
+  region: "",
+  city: "Addis Ababa",
+  address: "",
+  phone: "",
+  email: "",
+  members: "",
+  vehicles: "",
+  manager: "",
+  managerPhone: "",
+  managerEmail: "",
+  representative: "",
+  representativePhone: "",
+  consent: false,
+};
+const steps = ["Organization", "Location", "Operations", "Contacts", "Review"];
 
-export default function MembershipRegister(){
- const [step,setStep]=useState(0), [data,setData]=useState<Data>(initial), [errors,setErrors]=useState<Record<string,string>>({}), [done,setDone]=useState(false), [ref,setRef]=useState(''), [busy,setBusy]=useState(false), [submitError,setSubmitError]=useState('');
- const set=(k:string,v:string|boolean)=>setData(d=>({...d,[k]:v}));
- const validate=()=>{const e:Record<string,string>={}; if(step===0){if(!data.organizationName)e.organizationName='Required';if(!data.organizationType)e.organizationType='Required';if(!data.sector)e.sector='Required'} if(step===1){if(!data.region)e.region='Required';if(!data.city)e.city='Required';if(!data.address)e.address='Required'} if(step===2){if(!data.members)e.members='Required';if(!data.vehicles)e.vehicles='Required'} if(step===3){if(!data.manager)e.manager='Required';if(!data.managerPhone)e.managerPhone='Required';if(!data.email)e.email='Required'} if(step===4&&!data.consent)e.consent='Please confirm'; setErrors(e); return !Object.keys(e).length};
- const next=()=>validate()&&setStep(s=>Math.min(4,s+1)); const back=()=>{setErrors({});setStep(s=>Math.max(0,s-1))};
- const submit=async(e:FormEvent)=>{e.preventDefault();if(!validate())return;setBusy(true);setSubmitError('');try{const r=await api<{reference:string}>('/membership/applications',{method:'POST',body:JSON.stringify(data)});setRef(r.reference);setDone(true)}catch(err:any){setSubmitError(err.message||'Unable to submit application. Please try again.')}finally{setBusy(false)}};
- if(done)return <section className="registration-page"><div className="container registration-container"><div className="success-card"><div className="success-icon">✓</div><span className="eyebrow">APPLICATION RECEIVED</span><h1>Application prepared successfully.</h1><p>This frontend flow is ready for the secure backend submission and administrator review module.</p><div className="reference-box"><span>APPLICATION REFERENCE</span><strong>{ref}</strong></div><Link className="button button-dark" to="/membership">Back to membership</Link></div></div></section>;
- const field=(label:string,key:string,required=false,type='text')=><label className="form-field"><span>{label}{required&&<i>*</i>}</span><input type={type} value={String(data[key]??'')} onChange={e=>set(key,e.target.value)} className={errors[key]?'has-error':''}/>{errors[key]&&<small className="field-error">{errors[key]}</small>}</label>;
- const select=(label:string,key:string,opts:string[],required=false)=><label className="form-field"><span>{label}{required&&<i>*</i>}</span><select value={String(data[key]??'')} onChange={e=>set(key,e.target.value)}><option value="">Select...</option>{opts.map(o=><option key={o}>{o}</option>)}</select>{errors[key]&&<small className="field-error">{errors[key]}</small>}</label>;
- return <section className="registration-page"><div className="container registration-container"><div className="registration-header"><Link className="back-link" to="/membership">← Membership</Link><span className="eyebrow">ONLINE MEMBERSHIP REGISTRATION</span><h1>Register your organization with ETEF.</h1><p>Complete the application in five steps. Required fields are marked with an asterisk.</p></div><div className="stepper">{steps.map((x,i)=><div className={`step-item ${i===step?'active':''} ${i<step?'complete':''}`} key={x}><span>{i<step?'✓':`0${i+1}`}</span><b>{x}</b></div>)}</div><form className="registration-card" onSubmit={submit}>
- {step===0&&<div className="form-section"><div className="form-title"><span>01</span><div><h2>Organization information</h2><p>Basic information about the applicant.</p></div></div><div className="form-grid">{field('Organization / company name','organizationName',true)}{select('Organization type','organizationType',['Association','Company','Federation / umbrella organization','Other'],true)}{select('Primary transport sector','sector',['Freight transport','Public transport','Taxi','Towing & hoisting','Liquid transport','International transport','Other'],true)}</div></div>}
- {step===1&&<div className="form-section"><div className="form-title"><span>02</span><div><h2>Location & address</h2><p>Primary office location.</p></div></div><div className="form-grid">{select('Region / city administration','region',['Addis Ababa','Oromia','Amhara','Tigray','Sidama','Southern Ethiopia','Central Ethiopia','Other'],true)}{field('City','city',true)}{field('Sub-city','subCity')}{field('Woreda','woreda')}{field('Office address','address',true)}{field('Organization phone','phone')}{field('Organization email','email',false,'email')}</div></div>}
- {step===2&&<div className="form-section"><div className="form-title"><span>03</span><div><h2>Membership & operations</h2><p>Basic membership and fleet information.</p></div></div><div className="form-grid form-grid-small">{field('Number of members','members',true,'number')}{field('Number of vehicles','vehicles',true,'number')}</div><div className="info-note"><strong>Supporting documents</strong><p>Upload requirements will be enabled after ETEF confirms the final document list and file limits.</p></div></div>}
- {step===3&&<div className="form-section"><div className="form-title"><span>04</span><div><h2>Key contacts</h2><p>People responsible for the application.</p></div></div><div className="form-grid">{field('General Manager / responsible officer','manager',true)}{field('Manager phone','managerPhone',true)}{field('Manager email','managerEmail',false,'email')}{field('Federation representative','representative')}{field('Representative phone','representativePhone')}</div></div>}
- {step===4&&<div className="form-section"><div className="form-title"><span>05</span><div><h2>Review application</h2><p>Confirm the information before submission.</p></div></div><div className="review-list">{[['Organization',data.organizationName],['Type',data.organizationType],['Sector',data.sector],['Location',[data.region,data.city,data.address].filter(Boolean).join(', ')],['Phone',data.phone],['Email',data.email],['Members',data.members],['Vehicles',data.vehicles],['General Manager',data.manager],['Manager phone',data.managerPhone]].map(([a,b])=><div key={String(a)}><span>{a}</span><strong>{String(b)||'—'}</strong></div>)}</div><label className="consent"><input type="checkbox" checked={Boolean(data.consent)} onChange={e=>set('consent',e.target.checked)}/><span>I confirm that the information provided is accurate and may be reviewed by ETEF.</span></label>{errors.consent&&<small className="field-error">{errors.consent}</small>}</div>}
- <div className="form-actions">{submitError&&<div className="field-error">{submitError}</div>}<button type="button" className="button button-outline-dark" onClick={back} disabled={!step}>← Back</button>{step<4?<button type="button" className="button button-dark" onClick={next}>Continue →</button>:<button className="button button-gold" disabled={busy}>{busy?"Submitting…":"Submit application ↗"}</button>}</div></form></div></section>;
+export default function MembershipRegister() {
+  const [step, setStep] = useState(0),
+    [data, setData] = useState<Data>(initial),
+    [errors, setErrors] = useState<Record<string, string>>({}),
+    [done, setDone] = useState(false),
+    [ref, setRef] = useState(""),
+    [busy, setBusy] = useState(false),
+    [submitError, setSubmitError] = useState("");
+  const set = (k: string, v: string | boolean) =>
+    setData((d) => ({ ...d, [k]: v }));
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (step === 0) {
+      if (!data.organizationName) e.organizationName = "Required";
+      if (!data.organizationType) e.organizationType = "Required";
+      if (!data.sector) e.sector = "Required";
+    }
+    if (step === 1) {
+      if (!data.region) e.region = "Required";
+      if (!data.city) e.city = "Required";
+      if (!data.address) e.address = "Required";
+    }
+    if (step === 2) {
+      if (!data.members) e.members = "Required";
+      if (!data.vehicles) e.vehicles = "Required";
+    }
+    if (step === 3) {
+      if (!data.manager) e.manager = "Required";
+      if (!data.managerPhone) e.managerPhone = "Required";
+      if (!data.email) e.email = "Required";
+    }
+    if (step === 4 && !data.consent) e.consent = "Please confirm";
+    setErrors(e);
+    return !Object.keys(e).length;
+  };
+  const next = () => validate() && setStep((s) => Math.min(4, s + 1));
+  const back = () => {
+    setErrors({});
+    setStep((s) => Math.max(0, s - 1));
+  };
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+    setBusy(true);
+    setSubmitError("");
+    try {
+      const r = await api<{ reference: string }>("/membership/applications", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      setRef(r.reference);
+      setDone(true);
+    } catch (err: any) {
+      setSubmitError(
+        err.message || "Unable to submit application. Please try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+  if (done)
+    return (
+      <section className="registration-page">
+        <div className="container registration-container">
+          <div className="success-card">
+            <div className="success-icon">✓</div>
+            <span className="eyebrow">APPLICATION RECEIVED</span>
+            <h1>Application prepared successfully.</h1>
+            <p>
+              This frontend flow is ready for the secure backend submission and
+              administrator review module.
+            </p>
+            <div className="reference-box">
+              <span>APPLICATION REFERENCE</span>
+              <strong>{ref}</strong>
+            </div>
+            <Link className="button button-dark" to="/membership">
+              Back to membership
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  const field = (
+    label: string,
+    key: string,
+    required = false,
+    type = "text",
+  ) => (
+    <label className="form-field">
+      <span>
+        {label}
+        {required && <i>*</i>}
+      </span>
+      <input
+        type={type}
+        value={String(data[key] ?? "")}
+        onChange={(e) => set(key, e.target.value)}
+        className={errors[key] ? "has-error" : ""}
+      />
+      {errors[key] && <small className="field-error">{errors[key]}</small>}
+    </label>
+  );
+  const select = (
+    label: string,
+    key: string,
+    opts: string[],
+    required = false,
+  ) => (
+    <label className="form-field">
+      <span>
+        {label}
+        {required && <i>*</i>}
+      </span>
+      <select
+        value={String(data[key] ?? "")}
+        onChange={(e) => set(key, e.target.value)}
+      >
+        <option value="">Select...</option>
+        {opts.map((o) => (
+          <option key={o}>{o}</option>
+        ))}
+      </select>
+      {errors[key] && <small className="field-error">{errors[key]}</small>}
+    </label>
+  );
+  return (
+    <section className="registration-page">
+      <div className="container registration-container">
+        <div className="registration-header">
+          <Link className="back-link" to="/membership">
+            ← Membership
+          </Link>
+          <span className="eyebrow">ONLINE MEMBERSHIP REGISTRATION</span>
+          <h1>Register your organization with ETEF.</h1>
+          <p>
+            Complete the application in five steps. Required fields are marked
+            with an asterisk.
+          </p>
+        </div>
+        <div className="stepper">
+          {steps.map((x, i) => (
+            <div
+              className={`step-item ${i === step ? "active" : ""} ${i < step ? "complete" : ""}`}
+              key={x}
+            >
+              <span>{i < step ? "✓" : `0${i + 1}`}</span>
+              <b>{x}</b>
+            </div>
+          ))}
+        </div>
+        <form className="registration-card" onSubmit={submit}>
+          {step === 0 && (
+            <div className="form-section">
+              <div className="form-title">
+                <span>01</span>
+                <div>
+                  <h2>Organization information</h2>
+                  <p>Basic information about the applicant.</p>
+                </div>
+              </div>
+              <div className="form-grid">
+                {field("Organization / company name", "organizationName", true)}
+                {select(
+                  "Organization type",
+                  "organizationType",
+                  [
+                    "Association",
+                    "Company",
+                    "Federation / umbrella organization",
+                    "Other",
+                  ],
+                  true,
+                )}
+                {select(
+                  "Primary transport sector",
+                  "sector",
+                  [
+                    "Freight transport",
+                    "Public transport",
+                    "Taxi",
+                    "Towing & hoisting",
+                    "Liquid transport",
+                    "International transport",
+                    "Other",
+                  ],
+                  true,
+                )}
+              </div>
+            </div>
+          )}
+          {step === 1 && (
+            <div className="form-section">
+              <div className="form-title">
+                <span>02</span>
+                <div>
+                  <h2>Location & address</h2>
+                  <p>Primary office location.</p>
+                </div>
+              </div>
+              <div className="form-grid">
+                {select(
+                  "Region / city administration",
+                  "region",
+                  [
+                    "Addis Ababa",
+                    "Oromia",
+                    "Amhara",
+                    "Tigray",
+                    "Sidama",
+                    "Southern Ethiopia",
+                    "Central Ethiopia",
+                    "Other",
+                  ],
+                  true,
+                )}
+                {field("City", "city", true)}
+                {field("Sub-city", "subCity")}
+                {field("Woreda", "woreda")}
+                {field("Office address", "address", true)}
+                {field("Organization phone", "phone")}
+                {field("Organization email", "email", false, "email")}
+              </div>
+            </div>
+          )}
+          {step === 2 && (
+            <div className="form-section">
+              <div className="form-title">
+                <span>03</span>
+                <div>
+                  <h2>Membership & operations</h2>
+                  <p>Basic membership and fleet information.</p>
+                </div>
+              </div>
+              <div className="form-grid form-grid-small">
+                {field("Number of members", "members", true, "number")}
+                {field("Number of vehicles", "vehicles", true, "number")}
+              </div>
+              <div className="info-note">
+                <strong>Supporting documents</strong>
+                <p>
+                  Upload requirements will be enabled after ETEF confirms the
+                  final document list and file limits.
+                </p>
+              </div>
+            </div>
+          )}
+          {step === 3 && (
+            <div className="form-section">
+              <div className="form-title">
+                <span>04</span>
+                <div>
+                  <h2>Key contacts</h2>
+                  <p>People responsible for the application.</p>
+                </div>
+              </div>
+              <div className="form-grid">
+                {field(
+                  "General Manager / responsible officer",
+                  "manager",
+                  true,
+                )}
+                {field("Manager phone", "managerPhone", true)}
+                {field("Manager email", "managerEmail", false, "email")}
+                {field("Federation representative", "representative")}
+                {field("Representative phone", "representativePhone")}
+              </div>
+            </div>
+          )}
+          {step === 4 && (
+            <div className="form-section">
+              <div className="form-title">
+                <span>05</span>
+                <div>
+                  <h2>Review application</h2>
+                  <p>Confirm the information before submission.</p>
+                </div>
+              </div>
+              <div className="review-list">
+                {[
+                  ["Organization", data.organizationName],
+                  ["Type", data.organizationType],
+                  ["Sector", data.sector],
+                  [
+                    "Location",
+                    [data.region, data.city, data.address]
+                      .filter(Boolean)
+                      .join(", "),
+                  ],
+                  ["Phone", data.phone],
+                  ["Email", data.email],
+                  ["Members", data.members],
+                  ["Vehicles", data.vehicles],
+                  ["General Manager", data.manager],
+                  ["Manager phone", data.managerPhone],
+                ].map(([a, b]) => (
+                  <div key={String(a)}>
+                    <span>{a}</span>
+                    <strong>{String(b) || "—"}</strong>
+                  </div>
+                ))}
+              </div>
+              <label className="consent">
+                <input
+                  type="checkbox"
+                  checked={Boolean(data.consent)}
+                  onChange={(e) => set("consent", e.target.checked)}
+                />
+                <span>
+                  I confirm that the information provided is accurate and may be
+                  reviewed by ETEF.
+                </span>
+              </label>
+              {errors.consent && (
+                <small className="field-error">{errors.consent}</small>
+              )}
+            </div>
+          )}
+          <div className="form-actions">
+            {submitError && <div className="field-error">{submitError}</div>}
+            <button
+              type="button"
+              className="button button-outline-dark"
+              onClick={back}
+              disabled={!step}
+            >
+              ← Back
+            </button>
+            {step < 4 ? (
+              <button
+                type="button"
+                className="button button-dark"
+                onClick={next}
+              >
+                Continue →
+              </button>
+            ) : (
+              <button className="button button-gold" disabled={busy}>
+                {busy ? "Submitting…" : "Submit application ↗"}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </section>
+  );
 }
